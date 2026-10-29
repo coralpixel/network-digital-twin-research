@@ -277,3 +277,152 @@ st.download_button(
     file_name="full_experiment_results.csv",
     mime="text/csv",
 )
+
+
+st.divider()
+st.header("Research Analysis")
+
+st.write(
+    "Statistical and sensitivity analysis across repeated synthetic "
+    "traffic experiments. Results are produced by an analytical model, "
+    "not measurements from a live network."
+)
+
+# Load statistical results if the experiment files exist.
+tables_dir = PROJECT_ROOT / "results" / "tables"
+figures_dir = PROJECT_ROOT / "results" / "figures"
+
+stats_path = tables_dir / "statistical_summary.csv"
+sensitivity_path = tables_dir / "traffic_sensitivity_runs.csv"
+sensitivity_summary_path = tables_dir / "traffic_sensitivity_summary.csv"
+
+if stats_path.exists():
+    stats_df = pd.read_csv(stats_path)
+
+    st.subheader("Repeated experiment statistical summary")
+    st.dataframe(stats_df.round(4), width="stretch", hide_index=True)
+
+    st.download_button(
+        "Download statistical summary (CSV)",
+        data=stats_df.to_csv(index=False).encode("utf-8"),
+        file_name="statistical_summary.csv",
+        mime="text/csv",
+    )
+else:
+    st.warning(
+        "Statistical summary not found. Run the repeated experiments "
+        "to generate statistical_summary.csv."
+    )
+
+if sensitivity_path.exists():
+    sensitivity_df = pd.read_csv(sensitivity_path)
+
+    st.subheader("Traffic sensitivity analysis")
+
+    sensitivity_scenarios = sensitivity_df[
+        sensitivity_df["scenario"].isin(
+            ["traffic_surge", "targeted_flood"]
+        )
+    ].copy()
+
+    utilization_summary = (
+        sensitivity_scenarios.groupby(
+            ["scenario", "multiplier"], as_index=False
+        )["maximum_utilization"]
+        .mean()
+    )
+    utilization_summary["maximum_utilization_percent"] = (
+        utilization_summary["maximum_utilization"] * 100
+    )
+
+    utilization_plot = (
+        alt.Chart(utilization_summary)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X("multiplier:Q", title="Traffic multiplier"),
+            y=alt.Y(
+                "maximum_utilization_percent:Q",
+                title="Mean maximum utilization (%)",
+            ),
+            color=alt.Color("scenario:N", title="Scenario"),
+            tooltip=[
+                "scenario",
+                "multiplier",
+                alt.Tooltip(
+                    "maximum_utilization_percent:Q",
+                    title="Mean utilization (%)",
+                    format=".2f",
+                ),
+            ],
+        )
+        .properties(height=350)
+    )
+
+    capacity_rule = (
+        alt.Chart(pd.DataFrame({"capacity": [100]}))
+        .mark_rule(strokeDash=[6, 4])
+        .encode(y="capacity:Q")
+    )
+
+    st.altair_chart(
+        utilization_plot + capacity_rule,
+        width="stretch",
+    )
+
+    # Report infinite latency observations without treating them as zero.
+    latency_summary = (
+        sensitivity_scenarios.groupby(
+            ["scenario", "multiplier"]
+        )["maximum_link_latency_ms"]
+        .agg(
+            total_runs="count",
+            finite_runs=lambda values: (
+                values.notna() & (values != float("inf"))
+            ).sum(),
+            infinite_runs=lambda values: (values == float("inf")).sum(),
+        )
+        .reset_index()
+    )
+
+    latency_summary["infinite_run_percent"] = (
+        latency_summary["infinite_runs"]
+        / latency_summary["total_runs"]
+        * 100
+    )
+
+    st.subheader("Latency validity and overload indicators")
+    st.caption(
+        "Infinite latency is retained as a model outcome when a link "
+        "reaches or exceeds its capacity. It is not interpreted as zero."
+    )
+    st.dataframe(
+        latency_summary.round(3),
+        width="stretch",
+        hide_index=True,
+    )
+
+    st.download_button(
+        "Download sensitivity runs (CSV)",
+        data=sensitivity_df.to_csv(index=False).encode("utf-8"),
+        file_name="traffic_sensitivity_runs.csv",
+        mime="text/csv",
+    )
+
+    if sensitivity_summary_path.exists():
+        sensitivity_summary_df = pd.read_csv(
+            sensitivity_summary_path
+        )
+
+        st.download_button(
+            "Download sensitivity summary (CSV)",
+            data=sensitivity_summary_df.to_csv(
+                index=False
+            ).encode("utf-8"),
+            file_name="traffic_sensitivity_summary.csv",
+            mime="text/csv",
+        )
+else:
+    st.warning(
+        "Sensitivity results not found. Generate the traffic sensitivity "
+        "CSV files before using this section."
+    )
