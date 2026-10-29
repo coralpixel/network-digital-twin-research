@@ -1,0 +1,22 @@
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ndt"
+version = "0.1.0"
+description = "Network Digital Twin for Network Failure and Attack Impact Analysis"
+requires-python = ">=3.12"
+dependencies = [
+    "networkx",
+    "matplotlib",
+    "pandas",
+    "streamlit",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

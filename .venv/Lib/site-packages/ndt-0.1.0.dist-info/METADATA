@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: ndt
+Version: 0.1.0
+Summary: Network Digital Twin for Network Failure and Attack Impact Analysis
+Requires-Python: >=3.12
+Requires-Dist: networkx
+Requires-Dist: matplotlib
+Requires-Dist: pandas
+Requires-Dist: streamlit
