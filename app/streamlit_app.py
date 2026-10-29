@@ -1,24 +1,21 @@
-
-import networkx as nx
-from ndt.topology import create_baseline_topology
-from ndt.topology_viz import draw_network_topology
-import matplotlib.pyplot as plt
-
 from pathlib import Path
 import sys
 
-import pandas as pd
-import streamlit as st
-
-# Allow the app to import the project package from src/.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_PATH = PROJECT_ROOT / "src"
 
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 
-from ndt.experiments import run_full_experiment
+import networkx as nx
+import matplotlib.pyplot as plt
+import pandas as pd
+import streamlit as st
+import altair as alt
 
+from ndt.topology import create_baseline_topology
+from ndt.topology_viz import draw_network_topology
+from ndt.experiments import run_full_experiment
 
 st.set_page_config(
     page_title="Network Digital Twin",
